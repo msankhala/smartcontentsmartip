@@ -22,8 +22,6 @@ function smartcontent_smartip_preprocess_node(&$variables) {
  * Altering the segment Add/Edit form's submit handler.
  */
 function smartcontent_smartip_form_alter(&$form, FormStateInterface $form_state, $form_id) {
-  // print_r($form_id);
-  // die();
   if ($form_id == 'smart_segment_add_form' || $form_id == 'smart_segment_edit_form') {
     $form['actions']['submit']['#submit'][] = 'smart_content_paragraphs_smartip_segment_form_save';
   }
