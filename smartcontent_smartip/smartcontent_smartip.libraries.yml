@@ -1,0 +1,10 @@
+smartippersonalization:
+  js:
+    js/smartippersonalization.js: { }
+  dependencies:
+    - core/jquery
+    - core/jquery.cookie
+    - core/drupal
+    - core/drupal.ajax
+    - core/drupalSettings
+    - core/jquery.once

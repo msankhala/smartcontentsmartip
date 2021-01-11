@@ -1,0 +1,8 @@
+smartcontent_smartip.reaction_controller:
+  path: '/smartip_personalised_content/reactions/{nid}'
+  defaults:
+    _controller: '\Drupal\smartcontent_smartip\Controller\ReactionsController::reaction'
+    _title: 'Smart Content paragraphs Reactions'
+  requirements:
+    _permission: 'access content'
+

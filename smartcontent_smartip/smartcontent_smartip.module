@@ -1,0 +1,109 @@
+<?php
+
+/**
+ * @file
+ * Contains smartcontent_smartip.module.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Http\Adapter\Guzzle6\Client;
+use Geocoder\Provider\GoogleMaps\GoogleMaps;
+use Geocoder\StatefulGeocoder;
+use Geocoder\Query\GeocodeQuery;
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function smartcontent_smartip_preprocess_node(&$variables) {
+  $variables['#attached']['library'][] = 'smartcontent_smartip/smartippersonalization';
+}
+
+/**
+ * Altering the segment Add/Edit form's submit handler.
+ */
+function smartcontent_smartip_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // print_r($form_id);
+  // die();
+  if ($form_id == 'smart_segment_add_form' || $form_id == 'smart_segment_edit_form') {
+    $form['actions']['submit']['#submit'][] = 'smart_content_paragraphs_smartip_segment_form_save';
+  }
+}
+
+/**
+ * Custom submit handler for Segment Add/Edit form.
+ */
+function smart_content_paragraphs_smartip_segment_form_save($form, FormStateInterface $form_state) {
+  $condition_config = $form_state->getValue('conditions_config');
+  $condition_keys = array_keys($condition_config['condition_items']);
+  foreach ($condition_keys as $condition_key) {
+    if (strpos($condition_key, 'geosmartip:smartipregion') !== FALSE) {
+      $region_name = $condition_config['condition_items'][$condition_key]['condition_type_settings']['value'];
+      _store_smartipregion_details($region_name);
+    }
+  }
+}
+
+/**
+ * Store the region details along with lat and long values.
+ */
+function _store_smartipregion_details($region_name) {
+  $httpClient = new Client();
+  $providers = \Drupal::entityTypeManager()->getStorage('geocoder_provider')->load('googlemaps');
+  if (!empty($providers)) {
+    $provider_config = $providers->get('configuration');
+    $provider = new GoogleMaps($httpClient, NULL, $provider_config['apiKey']);
+    $geocoder = new StatefulGeocoder($provider, 'en');
+
+    $result = $geocoder->geocodeQuery(GeocodeQuery::create(str_replace(' ', '+', $region_name)));
+    if ($result->count() > 0) {
+      $country = $result->first()->getCountry()->getName();
+      if (!_regionsmartip_exist($region_name, $country)) {
+        $boundsNElat = $result->first()->getBounds()->getNorth();
+        $boundsNElong = $result->first()->getBounds()->getEast();
+        $boundsSWlat = $result->first()->getBounds()->getSouth();
+        $boundsSWlong = $result->first()->getBounds()->getWest();
+
+        $database = \Drupal::database();
+        $database->insert('smart_content_paragraphs_regions')
+          ->fields([
+            'region',
+            'country',
+            'boundsNElat',
+            'boundsNElong',
+            'boundsSWlat',
+            'boundsSWlong',
+          ])
+          ->values([
+            $region_name,
+            $country,
+            $boundsNElat,
+            $boundsNElong,
+            $boundsSWlat,
+            $boundsSWlong,
+          ])
+          ->execute();
+      }
+    }
+  }
+  else {
+    drupal_set_message(t("Please add the Googlemaps provider and configure Google API Key in <a href='@baseurl/admin/config/system/geocoder/geocoder-provider' target='_blank'>Geocoder Provider</a> to save the region details", ['@baseurl' => base_path()]), 'error', TRUE);
+  }
+}
+
+/**
+ * Function to check whether the Region and country names already exist or not.
+ */
+function _regionsmartip_exist($region_name, $country) {
+  $database = \Drupal::database();
+  $query = $database->select('smart_content_paragraphs_regions', 'scp');
+  $query->condition('scp.region', $region_name, '=');
+  $query->condition('scp.country', $country, '=');
+  $query->fields('scp', ['country']);
+  $result = $query->execute()->fetchAll();
+  if (count($result) > 0) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}

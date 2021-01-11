@@ -1,0 +1,16 @@
+name: PCE Data Plugin - Geolocation (Smart IP)
+type: module
+description: Enables Geolocation conditions based on browser values for Smart Content
+core: 8.x
+package: 'Smart Content Paragraphs'
+core_version_requirement: ^8 || ^9
+dependencies:
+  - smart_content:smart_content
+  - smart_content_segments:smart_content_segments
+  - smart_content_paragraphs:smart_content_paragraphs
+  - smart_ip:smart_ip
+
+# Information added by Drupal.org packaging script on 2020-06-16
+version: '1.0.0-alpha3'
+project: 'smart_content_paragraphs'
+datestamp: 1592318063
